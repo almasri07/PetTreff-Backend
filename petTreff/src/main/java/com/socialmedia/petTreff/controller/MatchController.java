@@ -1,25 +1,16 @@
 package com.socialmedia.petTreff.controller;
 
-import java.util.List;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.socialmedia.petTreff.dto.CreateMatchRequestDTO;
 import com.socialmedia.petTreff.dto.MatchRequestDTO;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import com.socialmedia.petTreff.service.MatchService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/match")
@@ -43,9 +34,9 @@ public class MatchController {
 
     }
 
-    @PostMapping("/{id}/send-request")
+    @PostMapping("/{id}/send-interest")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void sendRequest(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
+    public void sendInterest(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
 
         matchService.sendInterest(id, user);
 
@@ -68,5 +59,17 @@ public class MatchController {
     public void close(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
         matchService.closeRequest(id, user);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMatchRequest(@PathVariable Long id) {
+        matchService.deleteRequest(id);
+        return ResponseEntity.noContent().build();
+    }
+    @DeleteMapping("/{id}/unsent-interest")
+    public ResponseEntity<Void> deleteInterest(@PathVariable Long id) {
+        matchService.deleteInterest(id);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

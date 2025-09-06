@@ -6,7 +6,6 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 @Getter
@@ -59,41 +58,62 @@ public class User {
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> authorities = new HashSet<>();
 
-    // users welche dieser User folgen
     @ManyToMany
-    @JoinTable(name = "user_following", joinColumns = @JoinColumn(name = "follower_id"), inverseJoinColumns = @JoinColumn(name = "following_id"))
-    private Set<User> following = new HashSet<>();
+    @JoinTable(
+            name = "user_friends",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "friend_id")
+    )
+    private Set<User> friends = new HashSet<>();
 
-    // users, die von diesem User gefolgt werden
-    @ManyToMany(mappedBy = "following")
-    private Set<User> followers = new HashSet<>();
 
-    public int getFollowerCount() {
-        return followers != null ? followers.size() : 0;
+    public Set<User> getFriends() {
+
+        return this.friends;
     }
 
-    public int getFollowingCount() {
-        return following != null ? following.size() : 0;
+    // Add Freundschaft
+    public boolean addFriend(User other) {
+        if (other == null || other.equals(this)) return false;
+        boolean added = this.friends.add(other);
+        if (added) other.getFriends().add(this);
+        return added;
     }
 
-    public void follow(User other) {
-        if (other == null || Objects.equals(this.id, other.id))
-            return;
-        this.following.add(other);
-        other.followers.add(this);
+    // lösch Freundschaft
+    public boolean removeFriend(User other) {
+        if (other == null || other.equals(this)) return false;
+        boolean removed = this.friends.remove(other);
+        if (removed) other.getFriends().remove(this);
+        return removed;
     }
 
-    public void unfollow(User other) {
-        if (other == null)
-            return;
-        this.following.remove(other);
-        other.followers.remove(this);
+    //  testet, ob zwischen 2 Users Freundscheft existiert.
+    public boolean isFriendsWith(User other) {
+        return other != null && this.friends.contains(other);
     }
 
-    public List<User> getFriends() {
-
-        return this.following.stream()
-                .filter(user -> user.getFollowers().contains(this))
-                .toList();
+    // gibt Anzahl der Freunden zurück
+    public int getFriendsCount() {
+        return this.friends.size();
     }
+
+    // gibt eine Menge der gemeinsame Freunde zurück
+    public Set<User> getMutualFriends(User other) {
+        if (other == null) return Set.of();
+        Set<User> mutual = new HashSet<>(this.friends);
+        mutual.retainAll(other.getFriends());
+        return mutual;
+    }
+
+    // wenn ein User gelöscht würde, dann wird auch aus Liste seiner Freunden gelöscht.
+    @PreRemove
+    private void preRemove() {
+        for (User f : new HashSet<>(friends)) {
+            f.getFriends().remove(this);
+        }
+        friends.clear();
+    }
+
+
 }

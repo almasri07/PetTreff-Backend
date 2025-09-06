@@ -9,6 +9,8 @@ import lombok.Data;
 
 @Data
 public class CreateMatchRequestDTO {
+
+
     @NotNull
     private PetTypeEnum petType;
 

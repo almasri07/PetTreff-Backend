@@ -1,17 +1,15 @@
 package com.socialmedia.petTreff.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
 import com.socialmedia.petTreff.dto.NotificationDTO;
 import com.socialmedia.petTreff.entity.Notification;
 import com.socialmedia.petTreff.entity.NotificationType;
 import com.socialmedia.petTreff.mapper.NotificationMapper;
 import com.socialmedia.petTreff.repository.NotificationRepository;
-
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.*;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +24,15 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public long unreadCount(Long userId) {
+
         return repo.countByRecipientIdAndReadAtIsNull(userId);
+    }
+
+
+    @Transactional
+    public boolean markOneRead(Long notifId, Long userId) {
+        // markOneAsRead Methode gibt 1 falls erfolgreich gelesen wurde und 0 falls nichts
+        return repo.markOneAsRead(notifId, userId) > 0;
     }
 
     @Transactional
@@ -34,11 +40,12 @@ public class NotificationService {
         repo.markAllAsRead(userId);
     }
 
+
     // hilft bei der Erstellung von Benachrichtigungen
     @Transactional
-    public void create(Long recipientId, String recipientName,
-            NotificationType type, String title, String text,
-            Long actorId, Long refId) {
+    public NotificationDTO create(Long recipientId, String recipientName, NotificationType type, String title,
+                                  String text, Long actorId, Long refId) {
+
         Notification n = new Notification();
         n.setRecipientId(recipientId);
         n.setRecipientName(recipientName);
@@ -47,6 +54,8 @@ public class NotificationService {
         n.setText(text);
         n.setActorId(actorId);
         n.setRefId(refId);
-        repo.save(n);
+
+        Notification saved = repo.save(n);
+        return NotificationMapper.toDTO(saved);
     }
 }

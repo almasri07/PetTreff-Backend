@@ -1,6 +1,7 @@
 package com.socialmedia.petTreff.service;
 
 import com.socialmedia.petTreff.dto.LikeDTO;
+import com.socialmedia.petTreff.entity.NotificationType;
 import com.socialmedia.petTreff.entity.Post;
 import com.socialmedia.petTreff.entity.PostLike;
 import com.socialmedia.petTreff.entity.User;
@@ -10,6 +11,7 @@ import com.socialmedia.petTreff.repository.PostRepository;
 import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class LikeService {
 
     private final PostService postService;
@@ -28,14 +31,8 @@ public class LikeService {
 
     private LikeRepository likeRepository;
 
-    public LikeService(PostService postService, PostRepository postRepository, LikeRepository likeRepository,
-            UserRepository userRepository) {
+    private final NotificationService notificationService;
 
-        this.postService = postService;
-        this.postRepository = postRepository;
-        this.likeRepository = likeRepository;
-        this.userRepository = userRepository;
-    }
 
     public List<PostLike> getAllLikes() {
         return likeRepository.findAll();
@@ -44,6 +41,7 @@ public class LikeService {
     public Optional<PostLike> getLikeById(Long id) {
         return likeRepository.findById(id);
     }
+
 
     public LikeDTO createLike(Long postId, UserPrincipal userPrincipal) {
 
@@ -70,9 +68,19 @@ public class LikeService {
         newLike.setUser(user);
         newLike.setPost(post);
 
-        likeRepository.save(newLike);
+        PostLike saved =likeRepository.save(newLike);
 
-        return LikeMapper.toDto(newLike);
+        User recipient = post.getAuthor();
+
+        if(recipient.getId().equals(userId)) {   return LikeMapper.toDto(saved);  }
+
+
+        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.GENERAL,
+                "Someone liked your post",
+                user.getUsername() + "has liked your post " ,  user.getId() , saved.getId() );
+
+
+        return LikeMapper.toDto(saved);
     }
 
     public void deleteLike(Long postId, Long userId) {

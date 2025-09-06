@@ -1,11 +1,10 @@
 package com.socialmedia.petTreff.entity;
 
-import java.time.Instant;
-
-import org.hibernate.annotations.CreationTimestamp;
-
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
 
 @Getter
 @Setter

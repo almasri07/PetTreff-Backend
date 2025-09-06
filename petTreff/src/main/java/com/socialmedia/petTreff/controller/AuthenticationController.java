@@ -6,13 +6,12 @@ import com.socialmedia.petTreff.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 // die Klasse ist für Login, Regesteration ...
 @RestController
 @RequestMapping("/auth")
-@Validated
+@CrossOrigin(value = "${frontend.url}", allowCredentials = "true")
 public class AuthenticationController {
 
     private final UserService userService;
@@ -47,7 +46,7 @@ public class AuthenticationController {
 
  */
     @PutMapping("/{id}/change-password")
-    public ResponseEntity<Void> changePassword(@PathVariable Long id, @RequestBody String newPassword) {
+    public ResponseEntity<Void> changePassword(@PathVariable Long id,@RequestBody String newPassword) {
         userService.changePassword(id, newPassword);
         return ResponseEntity.noContent().build();
     }

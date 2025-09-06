@@ -23,6 +23,7 @@ public class MatchRequest {
     @Column(nullable = false, length = 20)
     private PetTypeEnum petType;
 
+
     @Column(nullable = false, length = 120)
     private String location;
 
@@ -42,6 +43,9 @@ public class MatchRequest {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchRequestStatus status = MatchRequestStatus.OPEN;
+
+
+
 
 
 }

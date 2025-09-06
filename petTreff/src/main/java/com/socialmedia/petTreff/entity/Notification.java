@@ -9,7 +9,10 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @Entity
-@Table(name = "notification")
+@Table( name = "notification",
+        indexes = {
+                @Index(name = "idx_notif_rec_created", columnList = "recipientId,createdAt"),
+                @Index(name = "idx_notif_rec_read",    columnList = "recipientId,readAt")})
 @Getter
 @Setter
 @NoArgsConstructor

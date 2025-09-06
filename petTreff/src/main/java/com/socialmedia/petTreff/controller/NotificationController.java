@@ -1,17 +1,15 @@
 package com.socialmedia.petTreff.controller;
 
-import java.util.List;
-import java.util.Map;
-
+import com.socialmedia.petTreff.dto.NotificationDTO;
+import com.socialmedia.petTreff.security.UserPrincipal;
+import com.socialmedia.petTreff.service.NotificationService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import com.socialmedia.petTreff.dto.NotificationDTO;
-import com.socialmedia.petTreff.security.UserPrincipal;
-import com.socialmedia.petTreff.service.NotificationService;
-
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -29,9 +27,16 @@ public class NotificationController {
         return Map.of("unread", service.unreadCount(user.getId()));
     }
 
+    @PostMapping("/{id}/read")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void readOne(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal user) {
+        service.markOneRead(id, user.getId());
+    }
+
     @PostMapping("/read-all")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void readAll(@AuthenticationPrincipal UserPrincipal user) {
+
         service.markAllRead(user.getId());
     }
 }

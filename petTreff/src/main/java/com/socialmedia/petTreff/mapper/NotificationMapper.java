@@ -11,6 +11,8 @@ public class NotificationMapper {
         dto.setTitle(n.getTitle());
         dto.setText(n.getText());
         dto.setCreatedAt(n.getCreatedAt());
+        dto.setActorId(n.getActorId());
+        dto.setRefId(n.getRefId());
         dto.setRead(n.getReadAt() != null);
         return dto;
     }

@@ -26,7 +26,7 @@ public class CreateUserMapper {
         User user = new User();
         user.setUsername(createUserDTO.getUsername());
         user.setEmail(createUserDTO.getEmail());
-        user.setPassword(createUserDTO.getPassword()); // Assuming password is set in User entity
+        user.setPassword(createUserDTO.getPassword());
         user.setProfilePictureUrl(createUserDTO.getProfilePictureUrl());
         return user;
     }

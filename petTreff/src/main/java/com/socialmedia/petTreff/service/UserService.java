@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class UserService { /// Repository gibt immer Optional zurück, wenn der User nicht gefunden wird,
-                           /// dann wird eine Exception geworfen
+    /// dann wird eine Exception geworfen
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -103,6 +103,7 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
                 .collect(Collectors.toList());
     }
 
+
     public List<PetDTO> getUserPets(Long id) {
 
         if (id == null) {
@@ -134,18 +135,44 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
 
     }
 
-    public List<UserDTO> getUserFriends(Long id) {
+    public Set<UserDTO> getUserFriends(Long id) {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        List<User> friends = user.getFriends();
-        List<UserDTO> friendDTOs = friends.stream()
+        Set<User> friends = user.getFriends();
+        Set<UserDTO> friendDTOs = friends.stream()
                 .map(UserMapper::toDto)
-                .toList();
+                .collect(Collectors.toSet());
 
         return friendDTOs;
     }
+
+    public Set<UserDTO> getMutualUserFriends(Long id , Long otherUserId) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User other = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        Set<User> mutual = user.getMutualFriends(other);
+
+        Set<UserDTO> mutualDTO = mutual.stream().map(UserMapper::toDto)
+                .collect(Collectors.toSet());
+
+        return mutualDTO;
+    }
+
+
+    public int getFriendsCount(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        return user.getFriendsCount();
+
+    }
+
 
     @Transactional
     @PreAuthorize("@userSecurity.hasUserId(#id)")
@@ -187,47 +214,7 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
         return UserMapper.toDto(userRepository.save(user));
     }
 
-    public int getFollowerCount(Long id) {
 
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        return user.getFollowerCount();
-
-    }
-
-    public int getFollowingCount(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-        return user.getFollowingCount();
-    }
-
-    @Transactional
-    @PreAuthorize("@userSecurity.hasUserId(#id)")
-    public void followUser(Long id, Long otherId) {
-
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        User otherUser = userRepository.findById(otherId)
-                .orElseThrow(() -> new EntityNotFoundException("Other user not found"));
-
-        user.follow(otherUser);
-        userRepository.save(user);
-
-    }
-
-    @Transactional
-    @PreAuthorize("@userSecurity.hasUserId(#id)")
-    public void unfollowUser(Long id, Long otherId) {
-
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        User otherUser = userRepository.findById(otherId)
-                .orElseThrow(() -> new EntityNotFoundException("Other user not found"));
-
-        user.unfollow(otherUser);
-        userRepository.save(user);
-
-    }
 }
+

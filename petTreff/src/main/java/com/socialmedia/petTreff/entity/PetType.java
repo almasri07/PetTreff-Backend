@@ -18,6 +18,7 @@ public class PetType {
     @ToString.Include
     private Long id;
 
-    @Column(name = "type_name", nullable = false, length = 40)
-    private String typeName;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_name", nullable = false, unique = true, length = 40)
+    private PetTypeEnum typeName;
 }

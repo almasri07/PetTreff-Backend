@@ -2,6 +2,7 @@ package com.socialmedia.petTreff.service;
 
 import com.socialmedia.petTreff.dto.*;
 import com.socialmedia.petTreff.entity.Comment;
+import com.socialmedia.petTreff.entity.NotificationType;
 import com.socialmedia.petTreff.entity.Post;
 import com.socialmedia.petTreff.entity.User;
 import com.socialmedia.petTreff.mapper.CommentMapper;
@@ -34,6 +35,7 @@ public class PostService {
 
     private final CommentRepository commentRepository;
 
+    private final NotificationService notificationService;
     @Transactional(readOnly = true)
     public Page<PostDTO> getAllPosts(Pageable pageable) {
 
@@ -75,8 +77,19 @@ public class PostService {
         post.setLocation(safeLocation);
         post.setLikeCount(0);
 
-        Post saved = postRepository.saveAndFlush(post);
+        Post saved = postRepository.save(post);
 
+
+        if( author.getFriendsCount() > 0  ) {
+
+            for (User friend : author.getFriends()) {
+
+                notificationService.create(friend.getId(), friend.getUsername(), NotificationType.GENERAL,
+                        "Someone has published a new post",
+                        author.getUsername() + " has published a new post", author.getId(), saved.getId());
+
+            }
+        }
         return PostMapper.toDto(saved);
     }
 
@@ -150,6 +163,18 @@ public class PostService {
         comment.setAuthor(user);
 
         Comment savedComment = commentRepository.saveAndFlush(comment);
+
+        if( user.getFriendsCount() > 0  ) {
+
+            for (User friend : user.getFriends()) {
+
+                notificationService.create(friend.getId(), friend.getUsername(), NotificationType.GENERAL,
+                        "Someone has published a new comment",
+                        user.getUsername() + " has published a new comment", user.getId(), savedComment.getId());
+
+            }
+        }
+
         return CommentMapper.toDto(savedComment);
     }
 

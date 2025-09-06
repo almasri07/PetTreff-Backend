@@ -9,9 +9,7 @@ import com.socialmedia.petTreff.repository.PetRepository;
 import com.socialmedia.petTreff.repository.PetTypeRepository;
 import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -57,10 +55,25 @@ public class PetService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
-        Pet newPet = PetMapper.toEntity(petReq, petTypeRepository);
+        Pet newPet = new Pet();
+        newPet.setName(petReq.getName());
         newPet.setOwner(user);
-        petRepository.save(newPet);
-        return PetMapper.toDto(newPet);
+
+        PetType type;
+        if (petReq.getTypeId() != null) {
+            type = petTypeRepository.findById(petReq.getTypeId())
+                    .orElseThrow(() -> new IllegalArgumentException("PetType not found: " + petReq.getTypeId()));
+        } else if (petReq.getType() != null) {
+
+            type = petTypeRepository.findByTypeName(petReq.getType())
+                    .orElseThrow(() -> new IllegalArgumentException("PetType not found: " + petReq.getType()));
+        } else {
+            throw new IllegalArgumentException("Either typeId or type must be provided");
+        }
+
+        newPet.setType(type);
+        Pet saved = petRepository.save(newPet);
+        return PetMapper.toDto(saved);
     }
 
     @Transactional
@@ -74,17 +87,24 @@ public class PetService {
             throw new AccessDeniedException("Not allowed to update this pet");
         }
 
+        PetType type;
+
         if (req.getName() != null) {
             toUpdatePet.setName(req.getName());
         }
         if (req.getTypeId() != null) {
-            PetType petType = petTypeRepository.findById(req.getTypeId())
-                    .orElseThrow(() -> new IllegalArgumentException("PetType not found with id: " + req.getTypeId()));
-            toUpdatePet.setType(petType);
+            type = petTypeRepository.findById(req.getTypeId())
+                    .orElseThrow(() -> new IllegalArgumentException("PetType not found: " + req.getTypeId()));
+        } else if (req.getType() != null) {
 
+            type = petTypeRepository.findByTypeName(req.getType())
+                    .orElseThrow(() -> new IllegalArgumentException("PetType not found: " + req.getType()));
+        } else {
+            throw new IllegalArgumentException("Either typeId or type must be provided");
         }
-
-        return PetMapper.toDto(petRepository.save(toUpdatePet));
+        toUpdatePet.setType(type);
+        Pet saved = petRepository.save(toUpdatePet);
+        return PetMapper.toDto(saved);
     }
 
     @Transactional
