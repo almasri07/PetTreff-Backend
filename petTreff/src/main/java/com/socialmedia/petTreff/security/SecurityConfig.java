@@ -1,9 +1,13 @@
+
 package com.socialmedia.petTreff.security;
 
+
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,8 +26,77 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // match your stored password hashes
+        return new BCryptPasswordEncoder();
     }
+
+
+
+     // filterChain and corsConfigurationSource for DEVELOPING
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                // allow the WS handshake and SockJS without CSRF
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers("/ws/**", "/ws-sockjs/**", "/auth/login", "/auth/logout"))
+                .cors(cors -> {}) // picks up the bean below
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                "/auth/register", "/auth/login", "/auth/logout",
+                                "/error",
+                                "/ws/**", "/ws-sockjs/**"          // handshake must be public
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .formLogin(fl -> fl
+                        .loginProcessingUrl("/auth/login")
+                        .usernameParameter("username")
+                        .passwordParameter("password")
+                        .successHandler((req, res, authn) -> res.setStatus(HttpServletResponse.SC_OK))
+                        .failureHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Bad credentials"))
+                        .permitAll()
+                )
+                .logout(lo -> lo
+                        .logoutUrl("/auth/logout")
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_NO_CONTENT))
+                        .permitAll()
+                );
+
+        return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
+        return cfg.getAuthenticationManager();
+    }
+
+    // CORS: allow your frontend + WebSocket King
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${frontend.url:http://localhost:*}") String frontendUrl
+    ) {
+        var c = new CorsConfiguration();
+        c.setAllowedOriginPatterns(List.of(
+                frontendUrl,                     // your app (e.g. http://localhost:3000)
+                "http://localhost:*"            // local tools
+        ));
+        c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
+        c.setAllowedHeaders(List.of("*"));
+        c.setExposedHeaders(List.of("Location"));
+        c.setAllowCredentials(true);
+
+        var src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/**", c);
+        return src;
+    }
+
+
+
+
+    /* filterChain and corsConfigurationSource for DEVELOPING
 
     // das ist Konfiguration für Postman, stateless, Basic Auth und keine
     // login-Formular
@@ -31,20 +104,38 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // disable CSRF
+                // CSRF nur für login/logout ignorieren
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/auth/login", "/auth/logout", "/ws/**", "/ws-sockjs/**")
+                )
                 .cors(cors -> {}) // <— aktiviert CORS (holt Config unten)                     Das NEUE ÄNDERUNG
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Session-basiert (kein stateless!)
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register", "/error").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/public/**").permitAll()
-                        .requestMatchers("/api/health").permitAll()
-                        .anyRequest().authenticated())
-                .httpBasic(basic -> {
-                }); // Basic Auth
+                                .requestMatchers("/auth/register", "/auth/login",  "/auth/logout",
+                                        "/error",  "/ws/**", "/ws-sockjs/**").permitAll()
+                                .anyRequest().authenticated()
+                        )
+                // Login-Endpoint
+                .formLogin(fl -> fl
+                        .loginProcessingUrl("/auth/login")
+                        .successHandler((req, res, authn) -> res.setStatus(HttpServletResponse.SC_OK))
+                        .failureHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Bad credentials"))
+                        .permitAll()
+                )
+
+                // Logout-Endpoint
+                .logout(lo -> lo
+                        .logoutUrl("/auth/logout")
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_NO_CONTENT))
+                        .permitAll()
+                );
 
         return http.build();
     }
-                                                                ///          Das NEUE ÄNDERUNG
+
+
+                                                       ///          Das NEUE ÄNDERUNG
     // Globale CORS-Regel (ergänzt/übersteuert @CrossOrigin)
     @Bean
     CorsConfigurationSource corsConfigurationSource(
@@ -59,6 +150,9 @@ public class SecurityConfig {
         src.registerCorsConfiguration("/**", c);
         return src;
     }
+
+
+     */
 
 
     /*
@@ -82,3 +176,5 @@ public class SecurityConfig {
      */
 
 }
+
+

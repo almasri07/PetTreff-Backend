@@ -46,6 +46,12 @@ public class PostController {
         return ResponseEntity.ok(postService.getAllPosts(pageable));
     }
 
+    @GetMapping("/friends")
+    public ResponseEntity<Page<PostDTO>> getFriendsPosts(@AuthenticationPrincipal UserPrincipal actualUser
+            , Pageable pageable) {
+        return ResponseEntity.ok(postService.getFriendsPosts(actualUser.getId(), pageable));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<PostDTO> getPostById(@PathVariable Long id) {
 

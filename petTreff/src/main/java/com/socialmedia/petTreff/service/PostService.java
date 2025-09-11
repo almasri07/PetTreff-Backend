@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,26 @@ public class PostService {
 
         return postRepository.findAll(pageable)
                 .map(PostMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostDTO> getFriendsPosts(Long userId, Pageable pageable) {
+
+        UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (!principal.getId().equals(userId)) {
+            throw new AccessDeniedException("Not allowed to get feed of another user");
+        }
+
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        Set<Long> friendIds =  author.getFriends().stream().map(u -> u.getId()).collect(Collectors.toSet());
+
+        return postRepository.findOwnAndFriendsPosts(userId, friendIds, pageable).map(PostMapper::toDto);
+
+
+
     }
 
     @Transactional(readOnly = true)
@@ -250,5 +272,6 @@ public class PostService {
     public List<User> getUsersWhoLiked(Long postId) {
         return postlikeRepository.findUsersWhoLikedPost(postId);
     }
+
 
 }

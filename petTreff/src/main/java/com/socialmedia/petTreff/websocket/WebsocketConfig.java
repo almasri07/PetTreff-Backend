@@ -22,7 +22,7 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
 
         // festlegen, welche Prefix unsere Broker besitzt
 
-        registry.enableSimpleBroker("/user");
+        registry.enableSimpleBroker("/queue","/topic");
         registry.setApplicationDestinationPrefixes("/app");
         registry.setUserDestinationPrefix("/user");
     }
@@ -30,10 +30,32 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
 
+        // CONFIGURATIONS FOR  TESTING
+        // native websocket
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns(
+                        "http://localhost:*");
+
+        // browser SockJS fallback
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns(
+                        "http://localhost:5173",
+                        "http://localhost:*")
+                .withSockJS();
+
+  /*   for Dev Purposes
         // festlegen, welche Pfad für WebSocket ist.
 
+        // für Postman und WS clients
         registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("*");
+
+        // für browser SockJS clients
+        registry.addEndpoint("/ws-sockjs")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
+
+        **/
     }
 
     @Override
