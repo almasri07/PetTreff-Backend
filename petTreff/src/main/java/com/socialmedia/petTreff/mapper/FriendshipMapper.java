@@ -2,7 +2,6 @@ package com.socialmedia.petTreff.mapper;
 
 import com.socialmedia.petTreff.dto.FriendshipDTO;
 import com.socialmedia.petTreff.entity.Friendship;
-import com.socialmedia.petTreff.entity.User;
 
 public class FriendshipMapper {
 
@@ -24,12 +23,6 @@ public class FriendshipMapper {
         }
         Friendship friendship = new Friendship();
         friendship.setId(dto.getId());
-        User user = new User();
-        user.setId(dto.getUserId());
-        friendship.setUser(user);
-        User friend = new User();
-        friend.setId(dto.getFriendId());
-        friendship.setFriend(friend);
 
         if (dto.getStatus() != null) {
             friendship.setStatus(dto.getStatus());

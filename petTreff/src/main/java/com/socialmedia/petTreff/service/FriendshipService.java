@@ -1,5 +1,6 @@
 package com.socialmedia.petTreff.service;
 
+import com.socialmedia.petTreff.dto.CreateFriendshipDTO;
 import com.socialmedia.petTreff.dto.FriendshipDTO;
 import com.socialmedia.petTreff.entity.Friendship;
 import com.socialmedia.petTreff.entity.FriendshipStatus;
@@ -39,7 +40,7 @@ public class FriendshipService {
     }
 
     @Transactional
-    public FriendshipDTO createFriendship(FriendshipDTO friendshipDTO, Long requesterId) {
+    public FriendshipDTO createFriendship(CreateFriendshipDTO friendshipDTO, Long requesterId) {
 
         User recipient = userRepository.findById(friendshipDTO.getFriendId())
                 .orElseThrow(() -> new IllegalArgumentException("Recipient not found."));
@@ -49,23 +50,25 @@ public class FriendshipService {
             throw new AccessDeniedException("Not allowed to send friendship as another user");
         }
 
-        User sender = userRepository.findById(friendshipDTO.getUserId())
+        User sender = userRepository.findById(requesterId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found."));
 
-        if (friendshipDTO.getUserId().equals(friendshipDTO.getFriendId())) {
+        if (requesterId.equals(friendshipDTO.getFriendId())) {
 
             throw new IllegalArgumentException("Cannot send a request to yourself.");
         }
 
-        boolean isExists = friendshipRepository.existsByUserIdAndFriendIdOrFriendIdAndUserId(friendshipDTO.getUserId(),
-                friendshipDTO.getFriendId(), friendshipDTO.getFriendId(), friendshipDTO.getUserId());
+        boolean isExists = friendshipRepository.existsByUserIdAndFriendIdOrFriendIdAndUserId(requesterId,
+                friendshipDTO.getFriendId(), friendshipDTO.getFriendId(), requesterId);
 
         if (isExists) {
             throw new IllegalArgumentException("Friendship already exists or pending.");
         }
 
-        Friendship friendship = FriendshipMapper.toEntity(friendshipDTO);
+        Friendship friendship = new Friendship();
 
+        friendship.setUser(sender);
+        friendship.setFriend(recipient);
         friendship.setStatus(FriendshipStatus.PENDING);
 
         Friendship saved = friendshipRepository.save(friendship);

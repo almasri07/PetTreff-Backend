@@ -1,5 +1,6 @@
 package com.socialmedia.petTreff.controller;
 
+import com.socialmedia.petTreff.dto.CreateFriendshipDTO;
 import com.socialmedia.petTreff.dto.FriendshipDTO;
 import com.socialmedia.petTreff.entity.Friendship;
 import com.socialmedia.petTreff.security.UserPrincipal;
@@ -40,8 +41,9 @@ public class FriendshipController {
     }
 
     @PostMapping
-    public ResponseEntity<FriendshipDTO> createFriendship(@RequestBody FriendshipDTO friendshipDTO,
+    public ResponseEntity<FriendshipDTO> createFriendship(@RequestBody CreateFriendshipDTO friendshipDTO,
             @AuthenticationPrincipal UserPrincipal userPrincipal) {
+
 
         FriendshipDTO savedFriendship = friendshipService.createFriendship(friendshipDTO, userPrincipal.getId());
 
