@@ -1,10 +1,9 @@
 package com.socialmedia.petTreff.dto;
 
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-
-import jakarta.validation.constraints.Size;
 
 @Data
 public class PostDTO {
@@ -18,11 +17,11 @@ public class PostDTO {
     @Size(max = 3000)
     private String imageUrl;
     @Size(max = 100)
-    private String Feeling;
+    private String feeling;
     @Size(max = 100)
-    private String Location;
+    private String location;
     @Size(max = 100)
-    private String Caption;
+    private String caption;
     private int likeCount;
     private LocalDateTime createdAt, updatedAt;
     private Long version;

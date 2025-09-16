@@ -10,16 +10,17 @@ import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import com.socialmedia.petTreff.service.LikeService;
 import com.socialmedia.petTreff.service.PostService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -61,8 +62,9 @@ public class PostController {
     }
 
     @PostMapping
-    public ResponseEntity<PostDTO> createPost(@RequestBody CreatePostDTO req,
+    public ResponseEntity<PostDTO> createPost(@Valid @RequestBody CreatePostDTO req,
             @AuthenticationPrincipal UserPrincipal actualUser) {
+
 
         PostDTO post = postService.createPost(req, actualUser.getId());
 

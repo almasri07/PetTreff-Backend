@@ -9,8 +9,8 @@ public class CreatePostDTO {
     @NotBlank
     private String content;
     private String imageUrl;
-    private String Feeling;
-    private String Location;
-    private String Caption;
+    private String feeling;
+    private String location;
+    private String caption;
 
 }

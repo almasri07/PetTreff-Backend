@@ -1,7 +1,9 @@
 package com.socialmedia.petTreff.controller;
 
-import java.util.List;
-
+import com.socialmedia.petTreff.dto.FriendshipDTO;
+import com.socialmedia.petTreff.entity.Friendship;
+import com.socialmedia.petTreff.security.UserPrincipal;
+import com.socialmedia.petTreff.service.FriendshipService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,10 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import com.socialmedia.petTreff.dto.FriendshipDTO;
-import com.socialmedia.petTreff.entity.Friendship;
-import com.socialmedia.petTreff.security.UserPrincipal;
-import com.socialmedia.petTreff.service.FriendshipService;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/friendships")

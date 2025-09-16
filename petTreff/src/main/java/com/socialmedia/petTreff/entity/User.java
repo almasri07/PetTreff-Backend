@@ -41,6 +41,9 @@ public class User {
     @Column(length = 3000)
     private String profilePictureUrl;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Profile profile;
+
     @Version
     private Long version;
 

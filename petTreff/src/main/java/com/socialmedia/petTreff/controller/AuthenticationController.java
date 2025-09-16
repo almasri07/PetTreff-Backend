@@ -43,6 +43,8 @@ public class AuthenticationController {
 
         User newUser = userService.createUser(user);
 
+        System.out.println("user is "+ user);
+
 
         return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
