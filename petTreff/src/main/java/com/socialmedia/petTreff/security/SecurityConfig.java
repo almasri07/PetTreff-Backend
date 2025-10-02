@@ -6,9 +6,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,51 +33,37 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // 1) Disable CSRF protection entirely
-                .csrf(csrf -> csrf.disable())
-
-                // 2) Enable CORS (uses corsConfigurationSource())
-                .cors(cors -> {})
-
-                // 3) Keep stateful session (JSESSIONID)
-                .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                )
-
-                // 4) Publicly expose OPTIONS + auth endpoints + WebSocket handshakes
+                .csrf(AbstractHttpConfigurer::disable)
+                       /* csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .ignoringRequestMatchers("/ws/**", "/ws-sockjs/**") // only handshake
+                )    */
+                .cors(Customizer.withDefaults())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
                                 "/auth/register",
                                 "/auth/login",
                                 "/auth/logout",
+                                "/auth/csrf-token",
                                 "/error",
                                 "/ws/**",
                                 "/ws-sockjs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-
-                // 5) Form-login on /auth/login
                 .formLogin(fl -> fl
                         .loginProcessingUrl("/auth/login")
                         .usernameParameter("username")
                         .passwordParameter("password")
-                        .successHandler((req, res, auth) ->
-                                res.setStatus(HttpServletResponse.SC_OK)
-                        )
-                        .failureHandler((req, res, ex) ->
-                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Bad credentials")
-                        )
+                        .successHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_OK))
+                        .failureHandler((req, res, ex) -> res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Bad credentials"))
                         .permitAll()
                 )
-
-                // 6) Logout on /auth/logout
                 .logout(lo -> lo
                         .logoutUrl("/auth/logout")
-                        .logoutSuccessHandler((req, res, auth) ->
-                                res.setStatus(HttpServletResponse.SC_NO_CONTENT)
-                        )
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_NO_CONTENT))
                         .permitAll()
                 );
 
@@ -96,7 +84,8 @@ public class SecurityConfig {
         CorsConfiguration c = new CorsConfiguration();
         c.setAllowedOriginPatterns(List.of(frontendUrl, "http://localhost:*"));
         c.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        c.setAllowedHeaders(List.of("Content-Type", "Authorization"));
+        c.setAllowedHeaders(List.of("Content-Type","Authorization","X-Requested-With","X-XSRF-TOKEN"));
+
         c.setAllowCredentials(true);
         c.setExposedHeaders(List.of("Location"));
 

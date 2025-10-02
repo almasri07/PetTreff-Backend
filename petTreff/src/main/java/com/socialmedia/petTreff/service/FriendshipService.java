@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -146,4 +147,28 @@ public class FriendshipService {
 
         friendshipRepository.deleteById(id);
     }
+
+    @Transactional(readOnly = true)
+    public String getRelationStatus(Long aId, Long bId) {
+        List<Friendship> between = friendshipRepository.findAll().stream()
+                .filter(f ->
+                        (f.getUser().getId().equals(aId) && f.getFriend().getId().equals(bId)) ||
+                                (f.getUser().getId().equals(bId) && f.getFriend().getId().equals(aId))
+                )
+                .collect(Collectors.toList());
+
+        // 1) gibt es ein PENDING?
+        boolean hasPending = between.stream()
+                .anyMatch(f -> f.getStatus() == FriendshipStatus.PENDING);
+        if (hasPending) return "PENDING";
+
+        // 2) gibt es eine akzeptierte Freundschaft?
+        boolean hasFriends = between.stream()
+                .anyMatch(f -> f.getStatus() == FriendshipStatus.ACCEPTED);
+        if (hasFriends) return "FRIENDS";
+
+        // 3) nichts gefunden
+        return "NONE";
+    }
+
 }

@@ -20,10 +20,13 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -153,6 +156,16 @@ public class PostService {
         }
 
         postRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void adminDeletePost(Long id) {
+        if (!postRepository.existsById(id)) {
+            throw new ResponseStatusException(NOT_FOUND, "Post not found");
+        }
+
+        postRepository.deleteById(id);
+
     }
 
     @Transactional(readOnly = true)

@@ -1,8 +1,11 @@
 package com.socialmedia.petTreff.service;
 
 
+import com.socialmedia.petTreff.dto.ChatMessageDTO;
 import com.socialmedia.petTreff.entity.ChatMessage;
+import com.socialmedia.petTreff.mapper.ChatMessageMapper;
 import com.socialmedia.petTreff.repository.ChatMessageRepository;
+import com.socialmedia.petTreff.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +20,19 @@ public class ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomService chatRoomService;
 
-    @Transactional
-    public ChatMessage save(ChatMessage chatMessage) {
+    private final UserRepository userRepository;
 
-        Long roomId = chatRoomService.getOrCreateChatRoomId( chatMessage.getSenderId(),
-                chatMessage.getRecipientId());
+    @Transactional
+    public ChatMessageDTO save(ChatMessage chatMessage) {
+
+        var sender = userRepository.findById(chatMessage.getSenderId())
+                .orElseThrow(() -> new IllegalArgumentException("Sender not found!"));
+        var recipient = userRepository.findById(chatMessage.getRecipientId())
+                .orElseThrow(() -> new IllegalArgumentException("Recipient not found!"));
+
+
+        Long roomId = chatRoomService.getOrCreateChatRoomId(sender.getId(),
+                recipient.getId());
 
         chatMessage.setChatRoomId(roomId);
 
@@ -30,18 +41,21 @@ public class ChatMessageService {
         }
         ChatMessage saved = chatMessageRepository.save(chatMessage);
 
-        return saved;
+        return ChatMessageMapper.toDTO(saved,userRepository);
 
     }
 
     @Transactional(readOnly = true)
-   public List<ChatMessage> getChatMessages(Long userXid, Long userYid) {
+   public List<ChatMessageDTO> getChatMessages(Long userXid, Long userYid) {
 
         long u1 = Math.min(userXid, userYid);
         long u2 = Math.max(userXid, userYid);
 
         return chatRoomService.findRoomId(u1, u2)
                 .map(chatMessageRepository::findByChatRoomIdOrderByDateTimeAsc)
+                .map(list -> list.stream()
+                        .map(m -> ChatMessageMapper.toDTO(m, userRepository))
+                        .toList())
                 .orElseGet(List::of);
    }
 

@@ -26,8 +26,9 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDTO>> getAllUsers(@RequestParam(defaultValue = "10") int limit) {
+
+        return ResponseEntity.ok(userService.getAllUsers(Math.max(1, Math.min(limit, 25))));
     }
 
     @GetMapping("/{id}")
@@ -38,10 +39,10 @@ public class UserController {
                         HttpStatus.NOT_FOUND, "User not found"));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/search")
+    public ResponseEntity<List<UserDTO>> searchUsers(@RequestParam String query) {
+
+        return ResponseEntity.ok(userService.searchUsers(query));
     }
 
     @PutMapping("/{id}/password")
@@ -71,11 +72,11 @@ public class UserController {
         return ResponseEntity.ok(userService.updateEmail(id, newEmail));
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<UserDTO>> searchUsers(@RequestParam String query) {
-
-        return ResponseEntity.ok(userService.searchUsers(query));
+    @GetMapping("/{id}/email")
+    public ResponseEntity<String> getEmail(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getEmail(id));
     }
+
 
     @GetMapping("/{id}/pets")
     public ResponseEntity<List<PetDTO>> getUserPets(@PathVariable Long id) {

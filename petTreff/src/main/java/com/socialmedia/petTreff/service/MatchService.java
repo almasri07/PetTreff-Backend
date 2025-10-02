@@ -10,12 +10,18 @@ import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +38,7 @@ public class MatchService {
     @Transactional
     public MatchRequestDTO createMatchRequest(CreateMatchRequestDTO dto, UserPrincipal userPrincipal) {
 
-        if (requestRepository.existsByAuthorIdAndStatus(userPrincipal.getId(),  MatchRequestStatus.OPEN)) {
+        if (requestRepository.existsByAuthorIdAndStatus(userPrincipal.getId(), MatchRequestStatus.OPEN)) {
             throw new IllegalStateException("you already have an open match request with this PET.");
         }
 
@@ -59,6 +65,7 @@ public class MatchService {
                 .toList();
 
     }
+
     @Transactional
     public void sendInterest(Long matchReqId, UserPrincipal sender) {
 
@@ -84,15 +91,15 @@ public class MatchService {
         interest.setSenderUsername(sender.getUsername());
         interest.setStatus(InterestStatus.PENDING);
 
-        MatchInterest  saved = interestRepository.save(interest);
+        MatchInterest saved = interestRepository.save(interest);
 
         User recipient = userRepository.findById(request.getAuthorId())
                 .orElseThrow(() -> new IllegalArgumentException("Recipient not found !"));
 
 
-        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH,
+        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH_INTEREST,
                 "Someone sent you a match interest",
-                sender.getUsername() + "has sent you a match interest" ,  sender.getId() , saved.getId() );
+                sender.getUsername() + " has sent you a match interest", sender.getId(), saved.getId());
 
     }
 
@@ -111,8 +118,8 @@ public class MatchService {
             return;
 
         interest.setStatus(InterestStatus.ACCEPTED);
-        // schließ das Request beim ersten Akzeptieren
         request.setStatus(MatchRequestStatus.ACCEPTED);
+        request.setAcceptedInterestId(interestId);
 
         MatchInterest saved = interestRepository.save(interest);
         requestRepository.save(request);
@@ -123,9 +130,9 @@ public class MatchService {
         User accepter = userRepository.findById(current.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Accepter not found !"));
 
-        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH,
+        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH_INTEREST_ACCEPTED,
                 "Someone accepted your interest",
-                accepter.getUsername() + "has accepted your match interest" ,  accepter.getId() , saved.getId() );
+                accepter.getUsername() + " has accepted your match interest", accepter.getId(), saved.getId());
 
 
     }
@@ -153,10 +160,9 @@ public class MatchService {
         User decliner = userRepository.findById(current.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Decliner not found !"));
 
-        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH,
+        notificationService.create(recipient.getId(), recipient.getUsername(), NotificationType.MATCH_INTEREST_DECLINED,
                 "Someone declined your interest",
-                decliner.getUsername() + "has declined your match interest" ,  decliner.getId() , saved.getId() );
-
+                decliner.getUsername() + " has declined your match interest", decliner.getId(), saved.getId());
 
 
     }
@@ -174,18 +180,27 @@ public class MatchService {
     }
 
     @Transactional
-    public void deleteRequest(Long id) {
+    public void deleteRequest(Long id, @AuthenticationPrincipal UserPrincipal principal) {
 
-            MatchRequest ReqToDelete = requestRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Match Request not found with id: " + id));
+        MatchRequest ReqToDelete = requestRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Match Request not found with id: " + id));
 
-            UserPrincipal principal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            if (!ReqToDelete.getAuthorId().equals(principal.getId())) {
-                throw new AccessDeniedException("Not allowed to delete this Request");
-            }
-
-            requestRepository.deleteById(id);
+        if (!ReqToDelete.getAuthorId().equals(principal.getId())) {
+            throw new AccessDeniedException("Not allowed to delete this Request");
         }
+
+        requestRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void adminDeleteRequest(Long id) {
+        var request = requestRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Match request not found"));
+
+        requestRepository.delete(request);
+
+    }
+
 
     @Transactional
     public void deleteInterest(Long id) {
@@ -202,7 +217,6 @@ public class MatchService {
     }
 
 
-
     private MatchRequestDTO toDto(MatchRequest r) {
 
         MatchRequestDTO matchRequestDTO = new MatchRequestDTO();
@@ -213,9 +227,46 @@ public class MatchService {
         matchRequestDTO.setAuthorId(r.getAuthorId());
         matchRequestDTO.setAuthorUsername(r.getAuthorUsername());
         matchRequestDTO.setCreatedAt(r.getCreatedAt());
+        matchRequestDTO.setStatus(r.getStatus());
+        matchRequestDTO.setAcceptedInterestId(r.getAcceptedInterestId());
+
 
         return matchRequestDTO;
     }
 
+    public ResponseEntity<Map<String, Object>> findInterestSenderBymatchIdAndAuthorId(Long matchId, Long authorId) {
 
+         MatchRequest matchRequest = requestRepository.findByIdAndStatus(matchId, MatchRequestStatus.ACCEPTED)
+                 .orElseThrow(() -> new IllegalArgumentException("Match request not found"));
+
+        if (!matchRequest.getAuthorId().equals(authorId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+
+
+
+        MatchInterest matchInterest = interestRepository.
+                findFirstByMatchRequestIdAndStatus(matchRequest.getId(), InterestStatus.ACCEPTED)
+                .orElse(null);
+
+        if( matchInterest == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("id", matchInterest.getSenderId());
+        payload.put("username", matchInterest.getSenderUsername());
+
+        return ResponseEntity.ok(payload);
+
+    }
+
+
+    public Optional<Long> getMatchIdByAuthorAndStatus(Long authorId, MatchRequestStatus status) {
+        return requestRepository
+                .findByAuthorIdAndStatus(authorId, status)
+                .map(MatchRequest::getId);
+    }
 }
+

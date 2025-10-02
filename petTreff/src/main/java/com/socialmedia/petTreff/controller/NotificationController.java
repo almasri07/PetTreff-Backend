@@ -22,6 +22,17 @@ public class NotificationController {
         return service.recentFor(user.getId());
     }
 
+
+    @GetMapping("/oneNotfication/{id}")
+    public NotificationDTO getOneNotification(@AuthenticationPrincipal UserPrincipal user,
+                                              @PathVariable("id") Long refId) {
+        return service.getOneNotification(user.getId(), refId);
+    }
+
+
+
+
+
     @GetMapping("/count")
     public Map<String, Long> count(@AuthenticationPrincipal UserPrincipal user) {
         return Map.of("unread", service.unreadCount(user.getId()));

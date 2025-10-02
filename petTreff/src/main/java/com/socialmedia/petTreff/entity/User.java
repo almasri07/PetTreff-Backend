@@ -70,6 +70,20 @@ public class User {
     private Set<User> friends = new HashSet<>();
 
 
+    /*
+    @OneToMany(mappedBy = "user",    /// um sicherstellen das user_id aus alle Tabelle gelöscht wurde
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
+    private Set<PostLike> likes = new HashSet<>();
+
+    */
+
+
+    @OneToMany(mappedBy = "author", /// um sicherstellen das user_id aus alle Tabelle gelöscht wurde
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
+    private List<Comment> comments = new ArrayList<>();
+
     public Set<User> getFriends() {
 
         return this.friends;

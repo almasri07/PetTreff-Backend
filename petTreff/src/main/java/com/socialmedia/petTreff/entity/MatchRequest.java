@@ -33,6 +33,9 @@ public class MatchRequest {
     @Column(nullable = false)
     private Long authorId;
 
+    @Column
+    private Long acceptedInterestId;
+
     @Column(nullable = false, length = 60)
     private String authorUsername;
 
@@ -43,6 +46,8 @@ public class MatchRequest {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchRequestStatus status = MatchRequestStatus.OPEN;
+
+
 
 
 

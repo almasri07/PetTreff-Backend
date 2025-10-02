@@ -2,13 +2,12 @@ package com.socialmedia.petTreff.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 @Getter
 @Setter
@@ -53,9 +52,18 @@ public class Post {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", cascade = {CascadeType.PERSIST , CascadeType.REMOVE}, orphanRemoval = true)
     @OrderBy("createdAt ASC")
     private List<Comment> commentList = new ArrayList<>();
+
+    /*
+    @OneToMany(mappedBy = "post",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true)
+    private Set<PostLike> likes = new HashSet<>();
+
+     */
+
 
     // um Race Conditions zu vermeiden z.B. wenn zwei User gleichzeitig den gleichen
     // Post liken

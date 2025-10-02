@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/friendships")
@@ -73,6 +74,19 @@ public class FriendshipController {
         friendshipService.deleteFriendship(id);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/status/{otherUserId}")
+    public ResponseEntity<Map<String, String>> status(
+            @PathVariable Long otherUserId,
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        System.out.println("Status check for otherUserId: " + otherUserId + " by user: " + userPrincipal.getId());
+
+        Long me = userPrincipal.getId();
+        String status = friendshipService.getRelationStatus(me, otherUserId);
+
+        // explizit 200 mit JSON { status: ... } – auch wenn null
+        return ResponseEntity.ok(Map.of("status", status));
     }
 
 }

@@ -1,19 +1,22 @@
 package com.socialmedia.petTreff.websocket;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.converter.*;
+import org.springframework.messaging.converter.DefaultContentTypeResolver;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.converter.MessageConverter;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
 
 import java.util.List;
 
-@Configuration
+
 @EnableWebSocketMessageBroker
+@Configuration
 public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
 
 
@@ -30,18 +33,22 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
 
+
         // CONFIGURATIONS FOR  TESTING
         // native websocket
+        /*
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(
                         "http://localhost:*");
-
+            */
         // browser SockJS fallback
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns(
                         "http://localhost:5173",
                         "http://localhost:*")
-                .withSockJS();
+                .addInterceptors(new HttpSessionHandshakeInterceptor())
+                .withSockJS()
+                .setSessionCookieNeeded(true);
 
   /*   for Dev Purposes
         // festlegen, welche Pfad für WebSocket ist.
@@ -65,13 +72,13 @@ public class WebsocketConfig implements WebSocketMessageBrokerConfigurer {
         myResolver.setDefaultMimeType(MimeTypeUtils.APPLICATION_JSON);
 
         MappingJackson2MessageConverter myConverter = new MappingJackson2MessageConverter();
-        myConverter.setObjectMapper(new ObjectMapper());
+       // myConverter.setObjectMapper(new ObjectMapper());
 
         myConverter.setContentTypeResolver(myResolver);
 
-        messageConverters.add(new StringMessageConverter());
-        messageConverters.add(new ByteArrayMessageConverter());
-        messageConverters.add(myConverter);
+     //  messageConverters.add(new StringMessageConverter());
+    //   messageConverters.add(new ByteArrayMessageConverter());
+         messageConverters.add(myConverter);
 
           // um sicherstelln, dass unsere Configuration wird
          // nicht ignoriert sondern mit Default Einstellung verwendet werden

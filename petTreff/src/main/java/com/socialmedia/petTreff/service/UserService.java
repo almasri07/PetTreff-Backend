@@ -8,18 +8,17 @@ import com.socialmedia.petTreff.entity.Pet;
 import com.socialmedia.petTreff.entity.Post;
 import com.socialmedia.petTreff.entity.Role;
 import com.socialmedia.petTreff.entity.User;
-import com.socialmedia.petTreff.mapper.UserMapper;
 import com.socialmedia.petTreff.mapper.CreateUserMapper;
 import com.socialmedia.petTreff.mapper.PetMapper;
 import com.socialmedia.petTreff.mapper.PostMapper;
+import com.socialmedia.petTreff.mapper.UserMapper;
 import com.socialmedia.petTreff.repository.RoleRepository;
 import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.InputSanitizer;
-
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,12 +38,14 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
+
+    @Transactional
+    public List<UserDTO> getAllUsers(int limit) {
+        return userRepository.findAllByOrderByIdAsc(PageRequest.of(0, limit))
                 .map(UserMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
+
 
     public Optional<UserDTO> getUserById(Long id) {
         return userRepository.findById(id).map(UserMapper::toDto);
@@ -79,7 +80,7 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
 
         user.setUsername(InputSanitizer.sanitizePlain(user.getUsername()));
 
-        Role adminRole = roleRepository.findByAuthority("ADMIN")
+        Role adminRole = roleRepository.findByAuthority("ROLE_ADMIN")
                 .orElseThrow(() -> new RuntimeException("Role 'ADMIN' not found"));
         user.setAuthorities(Set.of(adminRole));
         return userRepository.save(user);
@@ -154,8 +155,8 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        User other = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        User other = userRepository.findById(otherUserId)
+                .orElseThrow(() -> new EntityNotFoundException("Other User not found"));
 
         Set<User> mutual = user.getMutualFriends(other);
 
@@ -216,7 +217,38 @@ public class UserService { /// Repository gibt immer Optional zurück, wenn der 
         return UserMapper.toDto(userRepository.save(user));
     }
 
+    @Transactional
+    public void grantRole(Long userId, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        Role role = roleRepository.findByAuthority(roleName)
+                .orElseThrow(() -> new RuntimeException("Role '" + roleName + "' not found"));
+
+        user.getAuthorities().add(role);
+        userRepository.save(user);
+    }
 
 
+    public boolean existsAnyAdmin() {
+        return userRepository.existsByAuthoritiesAuthority("ROLE_ADMIN");
+    }
+
+    public User createAdmin(CreateUserDTO dto) {
+        User u = createUser(dto);           // erstellt normalen User (BCrypt usw.)
+        grantRole(u.getId(), "ROLE_ADMIN");      // hebt ihn auf ADMIN (siehe unten)
+        return userRepository.findById(u.getId()).orElseThrow();
+    }
+
+
+    public String getEmail(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        String email = user.getEmail();
+
+        return email;
+
+    }
 }
 

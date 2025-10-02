@@ -6,9 +6,11 @@ import com.socialmedia.petTreff.repository.ProfileRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import com.socialmedia.petTreff.service.ProfileService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 // com.socialmedia.petTreff.controller.ProfileController
 @RestController
@@ -32,13 +34,15 @@ public class ProfileController {
 
 
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<ProfileUpdateDTO> getMe(@AuthenticationPrincipal UserPrincipal principal) {
         var u = profileRepository.findByUser_Id(principal.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Profile not found"));
 
         return ResponseEntity.ok(ProfileMapper.toDto(u));
     }
+
 
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileUpdateDTO> getByUserId(@PathVariable Long userId) {

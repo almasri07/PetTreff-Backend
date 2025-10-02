@@ -1,7 +1,7 @@
 package com.socialmedia.petTreff.dto;
 
+import com.socialmedia.petTreff.entity.MatchRequestStatus;
 import com.socialmedia.petTreff.entity.PetTypeEnum;
-
 import lombok.Data;
 
 import java.time.Instant;
@@ -15,4 +15,6 @@ public class MatchRequestDTO {
     private Long authorId;
     private String authorUsername;
     private Instant createdAt;
+    private MatchRequestStatus status;
+    private Long acceptedInterestId;
 }

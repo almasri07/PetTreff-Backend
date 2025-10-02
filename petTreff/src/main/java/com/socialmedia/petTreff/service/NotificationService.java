@@ -21,6 +21,12 @@ public class NotificationService {
         return repo.findTop10ByRecipientIdOrderByCreatedAtDesc(userId)
                 .stream().map(NotificationMapper::toDTO).toList();
     }
+    @Transactional
+    public NotificationDTO getOneNotification(Long userId , Long refId) {
+
+        return repo.findByRefId(refId);
+}
+
 
     @Transactional(readOnly = true)
     public long unreadCount(Long userId) {

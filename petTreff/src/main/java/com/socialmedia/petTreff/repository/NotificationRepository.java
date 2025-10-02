@@ -1,5 +1,6 @@
 package com.socialmedia.petTreff.repository;
 
+import com.socialmedia.petTreff.dto.NotificationDTO;
 import com.socialmedia.petTreff.entity.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,4 +22,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("UPDATE Notification n SET n.readAt = CURRENT_TIMESTAMP WHERE n.recipientId = :uid AND n.readAt IS null")
     int markAllAsRead(Long uid);
 
+    NotificationDTO findByRefId(Long refId);
 }

@@ -14,5 +14,7 @@ public interface MatchRequestRepository extends JpaRepository<MatchRequest, Long
 
     boolean existsByAuthorIdAndStatus(Long authorId, MatchRequestStatus status);
 
+    Optional<MatchRequest> findByAuthorIdAndStatus(Long authorId, MatchRequestStatus status);
+
     Optional<MatchRequest> findByIdAndStatus(Long id, MatchRequestStatus status);
 }

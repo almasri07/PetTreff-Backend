@@ -8,8 +8,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChatMessageDTO {
     private Long id;
+    private Long senderId;
+    private Long recipientId;
     private String senderUsername;
     private String recipientUsername;
     private String content;
     private LocalDateTime dateTime;
+    private Long chatRoomId;
 }
