@@ -22,4 +22,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByAuthoritiesAuthority(String authority);
 
 
+    Optional<Object> findByEmail(String email);
 }

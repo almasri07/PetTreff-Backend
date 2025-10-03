@@ -2,6 +2,7 @@ package com.socialmedia.petTreff.service;
 
 import com.socialmedia.petTreff.dto.CreateMatchRequestDTO;
 import com.socialmedia.petTreff.dto.MatchRequestDTO;
+import com.socialmedia.petTreff.dto.UserDTO;
 import com.socialmedia.petTreff.entity.*;
 import com.socialmedia.petTreff.repository.MatchInterestRepository;
 import com.socialmedia.petTreff.repository.MatchRequestRepository;
@@ -9,6 +10,7 @@ import com.socialmedia.petTreff.repository.PetRepository;
 import com.socialmedia.petTreff.repository.UserRepository;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +19,13 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MatchService {
@@ -114,12 +117,33 @@ public class MatchService {
         if (!request.getAuthorId().equals(current.getId())) {
             throw new SecurityException("Only the receiver (owner) can accept.");
         }
-        if (interest.getStatus() != InterestStatus.PENDING)
-            return;
+
+        if (request.getStatus() == MatchRequestStatus.ACCEPTED &&
+                !Objects.equals(request.getAcceptedInterestId(), interestId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already accepted by another interest");
+        }
+
+        if (interest.getStatus() == InterestStatus.ACCEPTED) {
+            // Ensure request reflects that acceptance
+            if (request.getStatus() != MatchRequestStatus.ACCEPTED ||
+                    !Objects.equals(request.getAcceptedInterestId(), interestId)) {
+                request.setStatus(MatchRequestStatus.ACCEPTED);
+                request.setAcceptedInterestId(interestId);
+                requestRepository.save(request);
+            }
+            return; // done
+        }
+
+        if (interest.getStatus() != InterestStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Interest is not pending");
+        }
 
         interest.setStatus(InterestStatus.ACCEPTED);
+        interestRepository.save(interest);
+
         request.setStatus(MatchRequestStatus.ACCEPTED);
         request.setAcceptedInterestId(interestId);
+        requestRepository.save(request);
 
         MatchInterest saved = interestRepository.save(interest);
         requestRepository.save(request);
@@ -220,6 +244,7 @@ public class MatchService {
     private MatchRequestDTO toDto(MatchRequest r) {
 
         MatchRequestDTO matchRequestDTO = new MatchRequestDTO();
+
         matchRequestDTO.setId(r.getId());
         matchRequestDTO.setPetType(r.getPetType());
         matchRequestDTO.setLocation(r.getLocation());
@@ -234,39 +259,86 @@ public class MatchService {
         return matchRequestDTO;
     }
 
-    public ResponseEntity<Map<String, Object>> findInterestSenderBymatchIdAndAuthorId(Long matchId, Long authorId) {
+/*
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String,Object>> findAcceptedPeer(Long matchId, Long requesterId) {
+        var mr = requestRepository.findByIdAndStatus(matchId, MatchRequestStatus.ACCEPTED)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found or not ACCEPTED"));
 
-         MatchRequest matchRequest = requestRepository.findByIdAndStatus(matchId, MatchRequestStatus.ACCEPTED)
-                 .orElseThrow(() -> new IllegalArgumentException("Match request not found"));
+        log.info("accepted-peer: matchId={}, requesterId={}, authorId={}, acceptedInterestId={}",
+                matchId, requesterId, mr.getAuthorId(), mr.getAcceptedInterestId());
 
-        if (!matchRequest.getAuthorId().equals(authorId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        if (mr.getAcceptedInterestId() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "acceptedInterestId is null");
         }
 
+        var interest = interestRepository.findById(mr.getAcceptedInterestId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Accepted interest not found"));
 
-
-
-        MatchInterest matchInterest = interestRepository.
-                findFirstByMatchRequestIdAndStatus(matchRequest.getId(), InterestStatus.ACCEPTED)
-                .orElse(null);
-
-        if( matchInterest == null) {
-            return ResponseEntity.noContent().build();
+        final Long peerId;
+        if (Objects.equals(mr.getAuthorId(), requesterId)) {
+            peerId = interest.getSenderId();           // author -> peer is sender
+        } else if (Objects.equals(interest.getSenderId(), requesterId)) {
+            peerId = mr.getAuthorId();                 // sender -> peer is author
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant");
         }
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("id", matchInterest.getSenderId());
-        payload.put("username", matchInterest.getSenderUsername());
+        var peer = userRepository.findById(peerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Peer user not found"));
 
-        return ResponseEntity.ok(payload);
-
+        return ResponseEntity.ok(Map.of(
+                "id", peer.getId(),
+                "username", peer.getUsername(),
+                "profilePicture", peer.getProfilePictureUrl()
+        ));
     }
 
 
-    public Optional<Long> getMatchIdByAuthorAndStatus(Long authorId, MatchRequestStatus status) {
+*/
+@Transactional(readOnly = true)
+public ResponseEntity<UserDTO> findAcceptedPeer(Long matchId, Long requesterId) {
+    var mr = requestRepository.findByIdAndStatus(matchId, MatchRequestStatus.ACCEPTED)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Match not found or not ACCEPTED"));
+
+    if (mr.getAcceptedInterestId() == null) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "acceptedInterestId is null");
+    }
+
+    var interest = interestRepository.findById(mr.getAcceptedInterestId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Accepted interest not found"));
+
+    final Long peerId =
+            Objects.equals(mr.getAuthorId(), requesterId) ? interest.getSenderId() :
+                    Objects.equals(interest.getSenderId(), requesterId) ? mr.getAuthorId() : null;
+
+    if (peerId == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not a participant");
+
+    var peer = userRepository.findById(peerId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Peer user not found"));
+
+    var dto = new UserDTO();
+    dto.setId(peer.getId());
+    dto.setUsername(peer.getUsername());
+    dto.setProfilePictureUrl(peer.getProfilePictureUrl()); // may be null; fine
+
+    return ResponseEntity.ok(dto);
+}
+
+
+    public Optional<Long> getCurrentMatchIdForUser(Long userId) {
+        // If I'm the author of an ACCEPTED request → return it
+        Optional<Long> byAuthor = requestRepository
+                .findByAuthorIdAndStatus(userId, MatchRequestStatus.ACCEPTED)
+                .map(MatchRequest::getId);
+
+        if (byAuthor.isPresent()) return byAuthor;
+
+        // Else, if I'm the accepted interest sender → return that request
         return requestRepository
-                .findByAuthorIdAndStatus(authorId, status)
+                .findAcceptedByInterestSenderId(userId, MatchRequestStatus.ACCEPTED)
                 .map(MatchRequest::getId);
     }
+
 }
 

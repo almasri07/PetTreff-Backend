@@ -2,18 +2,19 @@ package com.socialmedia.petTreff.controller;
 
 import com.socialmedia.petTreff.dto.CreateMatchRequestDTO;
 import com.socialmedia.petTreff.dto.MatchRequestDTO;
-import com.socialmedia.petTreff.entity.MatchRequestStatus;
+import com.socialmedia.petTreff.dto.UserDTO;
 import com.socialmedia.petTreff.security.UserPrincipal;
 import com.socialmedia.petTreff.service.MatchService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/match")
 @RequiredArgsConstructor
@@ -75,29 +76,25 @@ public class MatchController {
     }
 
 
-    @GetMapping("{matchId}/accepted-peer")
-    public ResponseEntity<Map<String, Object>> getUserFromAcceptedInterest
-            (@PathVariable Long matchId,
-             @AuthenticationPrincipal UserPrincipal principal) {
-
-
-       return matchService.findInterestSenderBymatchIdAndAuthorId
-               ( matchId, principal.getId());
-
-
+    @GetMapping("/{matchId}/accepted-peer")
+    public ResponseEntity<UserDTO> getAcceptedPeer(
+            @PathVariable Long matchId,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return matchService.findAcceptedPeer(matchId, principal.getId());
     }
+
+
 
     @GetMapping("/currentMatchId")
     public ResponseEntity<Long> getCurrentMatchId(@AuthenticationPrincipal UserPrincipal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // or throw an auth exception
-        }
+        if (principal == null) return ResponseEntity.status(401).build();
 
-        return matchService
-                .getMatchIdByAuthorAndStatus(principal.getId(), MatchRequestStatus.ACCEPTED)
-                .map(ResponseEntity::ok)                 // 200 + body
-                .orElseGet(() -> ResponseEntity.notFound().build()); // 404
+        return matchService.getCurrentMatchIdForUser(principal.getId())
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build()); // 204 avoids red 404 in devtools
     }
+
+
 
 
 
